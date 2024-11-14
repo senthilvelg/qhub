@@ -1,3 +1,4 @@
+import torch
 from datasets import load_dataset
 from PIL import Image
 from transformers import BlipProcessor
@@ -6,23 +7,28 @@ from transformers import TrainingArguments, Trainer
 from huggingface_hub import notebook_login
 
 data_files = {
-    "train": "BLIP/train/captions.csv",
-    "eval": "BLIP/eval/captions.csv"
+    "train": "data/train/captions.csv",
+    "eval": "data/eval/captions.csv"
 }
 
 # Specify delimiter for TSV files
 dataset = load_dataset("csv", data_files=data_files, delimiter="\t")
 
+#base_model = "Salesforce/blip-image-captioning-base"
+base_model = "Salesforce/blip-image-captioning-large"
+
+device =  "mps" if torch.mps.is_available() else "cpu"
+print("running on ", device)
 
 print(dataset["train"])
 from transformers import BlipProcessor
 
-processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+processor = BlipProcessor.from_pretrained(base_model)
 
 
 def preprocess(example, split="train"):
     # Load the image
-    image_path = f"BLIP/{split}/images/{example['filename']}"
+    image_path = f"data/{split}/images/{example['filename']}"
     image = Image.open(image_path).convert("RGB")
 
     # Process image and caption
@@ -41,7 +47,7 @@ dataset["eval"] = dataset["eval"].map(lambda x: preprocess(x, "eval"), remove_co
 
 print(dataset)
 
-model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+model = BlipForConditionalGeneration.from_pretrained(base_model).to(device)
 training_args = TrainingArguments(
     output_dir="./blip-finetuned",
     evaluation_strategy="epoch",
@@ -49,7 +55,11 @@ training_args = TrainingArguments(
     per_device_train_batch_size=4,
     per_device_eval_batch_size=4,
     num_train_epochs=3,
-    save_strategy="epoch"
+    save_strategy="epoch",
+    save_total_limit=1,
+    load_best_model_at_end=True,
+    save_steps=500,
+    save_on_each_node=False
 )
 
 trainer = Trainer(
@@ -59,6 +69,5 @@ trainer = Trainer(
     eval_dataset=dataset["eval"]  # if you have a validation split
 )
 trainer.train()
-notebook_login()
-model.push_to_hub("Quadrant/qhub-blip-finetuned-model")
-processor.push_to_hub("Quadrant/qhub-blip-finetuned-processor")
+trainer.save_model()
+
