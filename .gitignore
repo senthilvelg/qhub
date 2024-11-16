@@ -163,3 +163,5 @@ cython_debug/
 /fine-tuning/models/BLIP-Vision/blip-finetuned/checkpoint-3/
 /fine-tuning/models/BLIP-Vision/blip-finetuned/
 /fine-tuning/models/CLIP-Vision-Classification/quadranttechnologies/
+/fine-tuning/models/BLIP-Vision/blip-finetuned_model/
+/fine-tuning/models/BLIP-Vision/blip-finetuned_processor/

@@ -1,4 +1,5 @@
 import torch
+from datetime import datetime
 from datasets import load_dataset
 from PIL import Image
 from transformers import BlipProcessor
@@ -48,6 +49,11 @@ dataset["eval"] = dataset["eval"].map(lambda x: preprocess(x, "eval"), remove_co
 print(dataset)
 
 model = BlipForConditionalGeneration.from_pretrained(base_model).to(device)
+model.config.fine_tuned_on = "Custom annotated retail Products Dataset"
+model.config.fine_tuning_task = "Visual Question answering"
+model.config.fine_tuned_by = "Quadrant Technologies"
+model.config.date_fine_tuned = str(datetime.now())
+
 training_args = TrainingArguments(
     output_dir="./blip-finetuned",
     evaluation_strategy="epoch",
@@ -68,6 +74,8 @@ trainer = Trainer(
     train_dataset=dataset["train"],
     eval_dataset=dataset["eval"]  # if you have a validation split
 )
-trainer.train()
-trainer.save_model()
+#trainer.train()
+#trainer.save_model()
+model.save_pretrained('blip-finetuned_model')
+processor.save_pretrained('blip-finetuned_processor')
 
